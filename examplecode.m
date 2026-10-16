@@ -1,6 +1,6 @@
 clear all
 load('ImgF_sample.mat')
-%% %downsample the recording. I DO NOT recommend running this with 256x256, you will likely run out of memory and/or patience
+%%
 
 downsamplesize = 2;
 
@@ -8,17 +8,13 @@ load('sampleMask.mat');
 maskOG = Mask; clear Mask
 maskOG = maskOG/max(max(maskOG));
 
-if downsamplesize > 1
-    [ImgF2,validPixels, sz] = spatial_downsample_reshaped(ImgF,downsamplesize, maskOG);
-    mask = embeddIntoFOV(validPixels, validPixels, sz);
-else
-    validPixels = find(maskOG == 1);
-    mask = maskOG;
-end
-
+mask= spatialBlockDownsample(single(maskOG),downsamplesize, maskOG);
+mask(mask~=0) = 1;
+sz = size(maskOG) / downsamplesize;
+validPixels = find(mask == 1);
 
 threshold = 1;
-ImgF2 = ImgF2 > threshold;
+ImgF2 = ImgF > threshold;
 
 %% the radius was determined from the partial correlation function decay as a function of distance amongst pixels
 radius = 16/downsamplesize;
@@ -79,14 +75,14 @@ D_merged = D(M == 1);
 
 clf
 X = {S, S_mergeless, S_merged};
-exponent = [1.125, 1.6, 1.];
+exponent = [1.25, 1.5, 1.];
 titles = {'All', 'Mergeless', 'Merged'};
 for i = 1:3
     subplot(3,1,i)
 [md, fq] = lnbin(X{i},30);
 loglog(md, fq)
 hold on
-loglog(md, md.^-exponent(i), '--k', 'DisplayName', ['\tau = ' num2str(exponent(i))])
+loglog(md, 0.5*md.^-exponent(i), '--k', 'DisplayName', ['\tau = ' num2str(exponent(i))])
 
 title(titles{i})
 
@@ -98,6 +94,7 @@ if i == 3
 xlabel('Avalanche Size, S')
 end
 legend(legendUnq())
+set(gca,'fontsize', 13)
 end
 
 
